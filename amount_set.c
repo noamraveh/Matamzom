@@ -155,11 +155,11 @@ AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount)
         return AS_NULL_ARGUMENT;
     }
     ElementNode ptr = findElement(set,element);
-   if (ptr == NULL){
+    if (ptr == NULL){
         return AS_ITEM_DOES_NOT_EXIST;
     }
-   *outAmount = ptr->amount;
-   return AS_SUCCESS;
+    *outAmount = ptr->amount;
+    return AS_SUCCESS;
 }
 
 AmountSetResult asRegister(AmountSet set, ASElement element){
@@ -194,6 +194,61 @@ AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double am
     return AS_SUCCESS;
 }
 
+
+ASElement asGetFirst(AmountSet set){
+    if (set == NULL){
+        return NULL;
+    }
+    ElementNode ptr = set->first_node;
+    ElementNode minimum_node = set->first_node;
+    if (ptr == NULL){
+        return NULL;
+    }
+    while (ptr->next_node != NULL){//find smallest node according to compare
+        if (set->CompareElements (ptr, ptr->next_node) > 0){//next node < current node
+            minimum_node = ptr->next_node;
+        }
+        ptr = ptr->next_node
+    }
+    set->iterator=minimum_node;
+    return minimum_node;
+}
+
+ASElement asGetNExt(AmountSet set){
+    if (set == NULL || set->iterator == NULL){
+        return NULL;
+    }
+    assert(set);
+
+    ElementNode iterating_ptr = set->first_node;
+    ElementNode chosen_ptr = NULL;
+
+    while (iterating_ptr != NULL) {
+        if (set->compareElements (iterating_ptr,set->iterator)>0) {
+            chosen_ptr = iterating_ptr;
+            break;
+        }
+        iterating_ptr = iterating_ptr->next_node;
+    }
+}
+if (chosen_ptr == NULL){
+return NULL;
+}
+
+iterating_ptr = set->first_node //initialize iterator;
+
+while (iterating_ptr != NULL) {
+while (set->compareElements(iterating_ptr,set->iterator)<0 ||
+set->compareElements(iterating_ptr,set->iterator)=0
+set->compareElements(iterating_ptr,chosen_ptr)>0 ||
+set->compareElements(iterating_ptr,chosen_ptr)=0){
+iterating_ptr = iterating_ptr->next_node;
+}
+chosen_ptr = iterating_ptr;
+iterating_ptr = iterating_ptr->next_node;
+}
+return chosen_pointer;
+}
 
 static ElementNode findElement(AmountSet set, ElementNode element){
     assert(set != NULL && element != NULL);
