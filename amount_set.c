@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdbool.h>
+
+#define IsNULL(ptr1,ptr2)    ((ptr1 == NULL || ptr2 == NULL) ? (true) : (false))
 
 typdef struct ElementNode_t* ElementNode;
 struct ElementNode_t{
@@ -136,11 +139,22 @@ int asGetSize(AmountSet set){
     return set->size;
 }
 
+bool asContains(AmountSet set, ASElement element){
+    if (IsNULL(set,element)){
+        return false;
+    }
+    if (findElement(set,element) == NULL){
+        return false;
+    }
+    return true;
+}
+
+
 AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount){
-    if (set == NULL || element == NULL){
+    if (IsNULL(set,element)){
         return AS_NULL_ARGUMENT;
     }
-    ElementNode ptr = FindElement(set,element);
+    ElementNode ptr = findElement(set,element);
    if (ptr == NULL){
         return AS_ITEM_DOES_NOT_EXIST;
     }
@@ -148,11 +162,27 @@ AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount)
    return AS_SUCCESS;
 }
 
-AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double amount){
-    if (set == NULL || element == NULL) {
+AmountSetResult asRegister(AmountSet set, ASElement element){
+    if (IsNULL(set,element)){
         return AS_NULL_ARGUMENT;
     }
-    ElementNode ptr = FindElement(set,element);
+    if (asContains(set,element)){
+        return AS_ITEM_ALREADY_EXISTS;
+    }
+    ElementNode new_node = createElementNode(set,element);
+    if (new_node == NULL){
+        return AS_NULL_ARGUMENT;
+    }
+    new_node->next_node = first_node; //adding the new element to the list's head
+    set->size++;
+    return AS_SUCCESS;
+}
+
+AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double amount){
+    if (IsNULL(set,element)) {
+        return AS_NULL_ARGUMENT;
+    }
+    ElementNode ptr = findElement(set,element);
     if (ptr == NULL){
         return AS_ITEM_DOES_NOT_EXIST;
     }
@@ -165,7 +195,7 @@ AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double am
 }
 
 
-static ElementNode FindElement(AmountSet set, ElementNode element){
+static ElementNode findElement(AmountSet set, ElementNode element){
     assert(set != NULL && element != NULL);
     ElementNode ptr = set->first_node;
     while(ptr != NULL){
