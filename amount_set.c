@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdbool.h>
+
+#define IsNULL(ptr1,ptr2)    ((ptr1 == NULL || ptr2 == NULL) ? (true) : (false))
 
 typdef struct ElementNode_t* ElementNode;
 struct ElementNode_t{
@@ -24,6 +27,7 @@ struct AmountSet_t {
 };
 
 static ElementNode createElementNode(AmountSet amount_set_ptr, ASElement element);
+static ElementNode FindElement(AmountSet set, ElementNode element);
 
 AmountSet asCreate(CopyASElement copyElement,
                    FreeASElement freeElement,
@@ -128,20 +132,79 @@ AmountSet asCopy(AmountSet set){
     return new_set;
 }
 
+int asGetSize(AmountSet set){
+    if (set == NULL){
+        return (-1);
+    }
+    return set->size;
+}
+
+bool asContains(AmountSet set, ASElement element){
+    if (IsNULL(set,element)){
+        return false;
+    }
+    if (findElement(set,element) == NULL){
+        return false;
+    }
+    return true;
+}
 
 
+AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount){
+    if (IsNULL(set,element)){
+        return AS_NULL_ARGUMENT;
+    }
+    ElementNode ptr = findElement(set,element);
+   if (ptr == NULL){
+        return AS_ITEM_DOES_NOT_EXIST;
+    }
+   *outAmount = ptr->amount;
+   return AS_SUCCESS;
+}
+
+AmountSetResult asRegister(AmountSet set, ASElement element){
+    if (IsNULL(set,element)){
+        return AS_NULL_ARGUMENT;
+    }
+    if (asContains(set,element)){
+        return AS_ITEM_ALREADY_EXISTS;
+    }
+    ElementNode new_node = createElementNode(set,element);
+    if (new_node == NULL){
+        return AS_NULL_ARGUMENT;
+    }
+    new_node->next_node = first_node; //adding the new element to the list's head
+    return AS_SUCCESS;
+}
+
+AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double amount){
+    if (IsNULL(set,element)) {
+        return AS_NULL_ARGUMENT;
+    }
+    ElementNode ptr = findElement(set,element);
+    if (ptr == NULL){
+        return AS_ITEM_DOES_NOT_EXIST;
+    }
+    if (ptr->amount + amount < 0)
+    {
+        return AS_INSUFFICIENT_AMOUNT;
+    }
+    ptr->amount += amount;
+    return AS_SUCCESS;
+}
 
 
-
-
-
-
-
-
-
-
-
-
+static ElementNode findElement(AmountSet set, ElementNode element){
+    assert(set != NULL && element != NULL);
+    ElementNode ptr = set->first_node;
+    while(ptr != NULL){
+        if (set->compareElements(ptr->element,element) == 0){
+            return ptr;
+        }
+        ptr = ptr->next_node;
+    }
+    return NULL;
+}
 
 static ElementNode createElementNode(AmountSet amount_set_ptr, ASElement element){
     ElementNode ptr = malloc(sizeof(*ptr));
