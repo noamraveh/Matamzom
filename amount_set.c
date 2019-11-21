@@ -24,6 +24,7 @@ struct AmountSet_t {
 };
 
 static ElementNode createElementNode(AmountSet amount_set_ptr, ASElement element);
+static ElementNode FindElement(AmountSet set, ElementNode element);
 
 AmountSet asCreate(CopyASElement copyElement,
                    FreeASElement freeElement,
@@ -128,20 +129,53 @@ AmountSet asCopy(AmountSet set){
     return new_set;
 }
 
+int asGetSize(AmountSet set){
+    if (set == NULL){
+        return (-1);
+    }
+    return set->size;
+}
+
+AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount){
+    if (set == NULL || element == NULL){
+        return AS_NULL_ARGUMENT;
+    }
+    ElementNode ptr = FindElement(set,element);
+   if (ptr == NULL){
+        return AS_ITEM_DOES_NOT_EXIST;
+    }
+   *outAmount = ptr->amount;
+   return AS_SUCCESS;
+}
+
+AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double amount){
+    if (set == NULL || element == NULL) {
+        return AS_NULL_ARGUMENT;
+    }
+    ElementNode ptr = FindElement(set,element);
+    if (ptr == NULL){
+        return AS_ITEM_DOES_NOT_EXIST;
+    }
+    if (ptr->amount + amount < 0)
+    {
+        return AS_INSUFFICIENT_AMOUNT;
+    }
+    ptr->amount += amount;
+    return AS_SUCCESS;
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+static ElementNode FindElement(AmountSet set, ElementNode element){
+    assert(set != NULL && element != NULL);
+    ElementNode ptr = set->first_node;
+    while(ptr != NULL){
+        if (set->compareElements(ptr->element,element) == 0){
+            return ptr;
+        }
+        ptr = ptr->next_node;
+    }
+    return NULL;
+}
 
 static ElementNode createElementNode(AmountSet amount_set_ptr, ASElement element){
     ElementNode ptr = malloc(sizeof(*ptr));
