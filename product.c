@@ -10,11 +10,15 @@
 #include <stdbool.h>
 
 
-struct Product_t {
-    char* prod_name;
+struct Products_t {
+    char* name;
     unsigned int id;
-    MatamazomAmountType prod_data;
-    enum amount_type;
+    MatamazomAmountType amountType;
+    MtmProductData customData;
     double sales;
+    MtmCopyData copyData;
+    MtmFreeData freeData;
+    MtmGetProductPrice prodPrice;
 };
+
 

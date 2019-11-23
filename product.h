@@ -33,6 +33,6 @@
  */
 
 /** Type for defining the product */
-typedef struct Product_t *Product;
+typedef struct Products_t *Products;
 
 #endif /* AMOUNT_SET_H_ */
