@@ -3,9 +3,28 @@
 #include "list.h"
 //#include "product.h"
 //#include "order.h"
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <assert.h>
+#include <math.h>
+
+#define AMOUNT_TYPE_NUM 3
+
+static bool nameValid (char* name);
+static bool checkAmountType (double amount, MatamazomAmountType type);
+static double absDouble (double number);
+typedef struct Product_t {
+    char* name;
+    unsigned int id;
+    MatamazomAmountType amountType;
+    MtmProductData customData;
+    double sales;
+    MtmCopyData copyData;
+    MtmFreeData freeData;
+    MtmGetProductPrice prodPrice;
+} *Product;
 
 struct Matamazom_t {
     AmountSet storage;
@@ -13,15 +32,91 @@ struct Matamazom_t {
 };
 
 Matamazom matamzomCreate() {
-    Matamazom warehouse = malloc(sizeof(*warehouse));
-    if (warehouse == NULL){
+    Matamazom matamazom = malloc(sizeof(*matamazom));
+    if (matamazom == NULL){
         return NULL;
     }
-    warehouse->storage = NULL;
-    warehouse->orders = NULL;
-    return warehouse;
+    matamazom->storage = NULL;
+    matamazom->orders = NULL;
+    return matamazom;
 }
 
 void matamazomDestroy(Matamazom matamazom){
+    if (matamazom == NULL){
+        return;
+    }
+    asDestroy(matamazom->storage);
+    listDestroy(matamazom->orders);
+    free(matamazom);
+}
+
+MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const char *name,
+                              const double amount, const MatamazomAmountType amountType,
+                              const MtmProductData customData, MtmCopyData copyData,
+                              MtmFreeData freeData, MtmGetProductPrice prodPrice){
+    if (matamazom == NULL || name == NULL || customData == NULL || freeData == NULL || prodPrice == NULL || copyData == NULL){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+    if (!nameValid(name)){
+        return MATAMAZOM_INVALID_NAME;
+    }
+    if (amount<0 || !checkAmountType){
+        return MATAMAZOM_INVALID_AMOUNT;
+    }
+    //defining new product
+    Product new_prod = malloc(sizeof(*new_prod));
+    if (new_prod == NULL){
+        return MATAMAZOM_OUT_OF_MEMORY;
+    }
+    new_prod->id = id;
+    strcpy(new_prod->name,name);
+    new_prod->amountType = amountType;
+    new_prod->customData = customData;
+    new_prod->prodPrice = prodPrice;
+    new_prod->sales = 0;
+    new_prod->copyData = copyData;
+    new_prod->freeData = freeData;
+
+    AmountSetResult registered = asRegister(matamazom->storage,new_prod);
+    assert(registered != AS_NULL_ARGUMENT);
+    if (registered == AS_ITEM_ALREADY_EXISTS){
+        return MATAMAZOM_PRODUCT_ALREADY_EXIST;
+    }
+    if (registered == AS_SUCCESS){
+        return MATAMAZOM_SUCCESS;
+    }
+    //only positive amounts added here
+    asChangeAmount(matamazom->storage,new_prod,amount);
+    return MATAMAZOM_SUCCESS;
+}
+
+
+
+static bool nameValid (char* name){
+    if ((*name >= 'a' && *name<= 'z') || (*name >= 'A' && *name <= 'Z') || (*name >= '0' && *name <= '9')) {
+        return true;
+    }
+    return false;
+}
+static double absDouble (double number){
+    if (number < 0){
+        return -number;
+    }
+    return number;
+
+}
+static bool checkAmountType (double amount, MatamazomAmountType type){
+    bool result;
+    switch (type){
+        case MATAMAZOM_INTEGER_AMOUNT:
+            result = absDouble(round(amount)-amount) < 0.001 ? true : false;
+            break;
+        case MATAMAZOM_HALF_INTEGER_AMOUNT:
+            result = absDouble((round(amount*2)/2.0)-amount) < 0.001 ? true: false;
+            break;
+        default:
+            result = false;
+    }
+    return result;
 
 }
