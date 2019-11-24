@@ -1,18 +1,18 @@
 #include "matamazom.h"
 #include "amount_set.h"
 #include "list.h"
-//#include "product.h"
-//#include "order.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "product.h"
 #include <math.h>
 
 static bool nameValid (const char* name);
 static bool checkAmountType (double amount, MatamazomAmountType type);
 static double absDouble (double number);
+static Product findProduct (AmountSet storage,const unsigned int id);
 
 typedef struct Product_t {
     char* name;
@@ -113,7 +113,12 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
 }
 
 MatamazomResult mtmChangeProductAmount(Matamazom matamazom, const unsigned int id, const double amount){
-    if (matamazom == NULL || )
+    if (matamazom == NULL){
+        return NULL;
+    }
+    Product current_product = findProduct(matamazom->storage,id);
+    AmountSetResult change_amount_result = asChangeAmount(matamazom->storage,current_product,amount);
+
 }
 
 
@@ -146,29 +151,13 @@ static bool checkAmountType (double amount, MatamazomAmountType type){
     return result;
 
 }
-/*
-static void freeProduct(Product product){
-    MtmFreeData (product->customData);
-    free(product);
-    return;
 
-}
-static int compareProduct (Product product1, Product product2){
-    return (int)(product1->id) - (int)(product2->id);
-}
-
-static Product copyProduct (Product product) {
-    Product copy = malloc(sizeof(*copy));
-    if (copy != NULL) {
-        copy->id = product->id;
-        strcpy(copy->name,product->name);
-        copy->amountType = product->amountType;
-        copy->customData = product->copyData(product->customData);
-        copy->prodPrice = product->prodPrice;
-        copy->sales = product->sales;
-        copy->copyData = product->copyData;
-        copy->freeData = product->freeData;
+static Product findProduct (AmountSet storage,const unsigned int id){
+    Product firstProduct = asGetFirst(storage);
+    AS_FOREACH(Product,prod1,storage){
+        if (prod1->id == id){
+            return prod1;
+        }
     }
-    return copy;
+    return NULL;
 }
- */
