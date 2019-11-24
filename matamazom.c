@@ -10,9 +10,12 @@
 #include <assert.h>
 #include <math.h>
 
-static bool nameValid (char* name);
+static bool nameValid (const char* name);
 static bool checkAmountType (double amount, MatamazomAmountType type);
 static double absDouble (double number);
+static ASElement copyProduct(ASElement product);
+static void freeProduct(ASElement product);
+static int compareProduct(ASElement product1, ASElement product2);
 
 typedef struct Product_t {
     char* name;
@@ -25,28 +28,6 @@ typedef struct Product_t {
     MtmGetProductPrice prodPrice;
 } *Product;
 
-static void freeProduct(ASElement product){
-    ((Product)product)->freeData(((Product)product)->customData);
-    free(product);
-}
-static int compareProduct(ASElement product1, ASElement product2){
-    return (int)(((Product)product1)->id) - (int)(((Product)(product2))->id);
-}
-
-static ASElement copyProduct(ASElement product) {
-    Product copy = malloc(sizeof(*copy));
-    if (copy != NULL) {
-        copy->id = ((Product)(product))->id;
-        strcpy(copy->name,((Product)(product))->name);
-        copy->amountType = ((Product)(product))->amountType;
-        copy->customData = ((Product)(product))->copyData(((Product)(product))->customData);
-        copy->prodPrice = ((Product)(product))->prodPrice;
-        copy->sales = ((Product)(product))->sales;
-        copy->copyData = ((Product)(product))->copyData;
-        copy->freeData = ((Product)(product))->freeData;
-    }
-    return copy;
-}
 struct Matamazom_t {
     AmountSet storage;
     List orders;
@@ -58,7 +39,8 @@ Matamazom matamzomCreate() {
         return NULL;
     }
     matamazom->storage = asCreate(copyProduct,freeProduct,compareProduct);
-    matamazom->orders = listCreate(copyProduct, freeProduct);
+    //need to be created when we reach the order part of the project
+   // matamazom->orders = listCreate(copyOrder, freeOrder);
     return matamazom;
 }
 
@@ -75,14 +57,15 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
                               const double amount, const MatamazomAmountType amountType,
                               const MtmProductData customData, MtmCopyData copyData,
                               MtmFreeData freeData, MtmGetProductPrice prodPrice) {
-    if (matamazom == NULL || matamazom->storage == NULL || name == NULL || customData == NULL || freeData == NULL ||
+    if (matamazom == NULL || name == NULL || customData == NULL || freeData == NULL ||
         prodPrice == NULL || copyData == NULL) {
         return MATAMAZOM_NULL_ARGUMENT;
     }
+    assert(matamazom->storage != NULL);
     if (!nameValid(name)) {
         return MATAMAZOM_INVALID_NAME;
     }
-    if (amount < 0 || !checkAmountType) {
+    if (amount < 0 || !checkAmountType(amount, amountType)) {
         return MATAMAZOM_INVALID_AMOUNT;
     }
     Product new_prod = malloc(sizeof(*new_prod));
@@ -107,11 +90,7 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
         return MATAMAZOM_OUT_OF_MEMORY;
     }
     //only positive amounts added here
-    if (result == AS_SUCCESS) {
-        asChangeAmount(matamazom->storage, new_prod, amount);
-        return MATAMAZOM_SUCCESS;
-    }
-    //shouldn't reach here
+    asChangeAmount(matamazom->storage, new_prod, amount);
     return MATAMAZOM_SUCCESS;
 }
 
@@ -119,9 +98,11 @@ MatamazomResult mtmChangeProductAmount(Matamazom matamazom, const unsigned int i
     if (matamazom == NULL || )
 }
 
+MatamazomResult mtmClearProduct(Matamazom matamazom, const unsigned int id){
+   // AmountSetResult cleared = asDelete(matamazom->storage,);
+}
 
-
-static bool nameValid (char* name){
+static bool nameValid (const char* name){
     if ((*name >= 'a' && *name<= 'z') || (*name >= 'A' && *name <= 'Z') || (*name >= '0' && *name <= '9')) {
         return true;
     }
@@ -132,7 +113,6 @@ static double absDouble (double number){
         return -number;
     }
     return number;
-
 }
 static bool checkAmountType (double amount, MatamazomAmountType type){
     bool result;
@@ -144,34 +124,30 @@ static bool checkAmountType (double amount, MatamazomAmountType type){
             result = absDouble((round(amount*2)/2.0)-amount) < 0.001 ? true: false;
             break;
         default:
-            result = false;
+            result = true;
     }
     return result;
 
 }
-/*
-static void freeProduct(Product product){
-    MtmFreeData (product->customData);
+static void freeProduct(ASElement product){
+    ((Product)product)->freeData(((Product)product)->customData);
     free(product);
-    return;
-
 }
-static int compareProduct (Product product1, Product product2){
-    return (int)(product1->id) - (int)(product2->id);
+static int compareProduct(ASElement product1, ASElement product2){
+    return (int)(((Product)product1)->id) - (int)(((Product)(product2))->id);
 }
 
-static Product copyProduct (Product product) {
+static ASElement copyProduct(ASElement product) {
     Product copy = malloc(sizeof(*copy));
     if (copy != NULL) {
-        copy->id = product->id;
-        strcpy(copy->name,product->name);
-        copy->amountType = product->amountType;
-        copy->customData = product->copyData(product->customData);
-        copy->prodPrice = product->prodPrice;
-        copy->sales = product->sales;
-        copy->copyData = product->copyData;
-        copy->freeData = product->freeData;
+        copy->id = ((Product)(product))->id;
+        strcpy(copy->name,((Product)(product))->name);
+        copy->amountType = ((Product)(product))->amountType;
+        copy->customData = ((Product)(product))->copyData(((Product)(product))->customData);
+        copy->prodPrice = ((Product)(product))->prodPrice;
+        copy->sales = ((Product)(product))->sales;
+        copy->copyData = ((Product)(product))->copyData;
+        copy->freeData = ((Product)(product))->freeData;
     }
     return copy;
 }
- */
