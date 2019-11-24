@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include "amount_set.h"
 
 /**
  * Product Struct Template
@@ -33,6 +34,6 @@
  */
 
 /** Type for defining the product */
-typedef struct Products_t *Products;
+typedef struct Product_t *Product;
 
 #endif /* AMOUNT_SET_H_ */

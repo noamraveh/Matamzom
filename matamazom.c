@@ -15,7 +15,7 @@ static double absDouble (double number);
 static ASElement copyProduct(ASElement product);
 static void freeProduct(ASElement product);
 static int compareProduct(ASElement product1, ASElement product2);
-static Product findProduct (AmountSet storage,const unsigned int id);
+static Product findProduct (AmountSet storage,unsigned int id);
 
 typedef struct Product_t {
     char* name;
@@ -82,12 +82,12 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
     new_prod->copyData = copyData;
     new_prod->freeData = freeData;
 
-    AmountSetResult result = asRegister(matamazom->storage, new_prod);
-    assert(result != AS_NULL_ARGUMENT);
-    if (result == AS_ITEM_ALREADY_EXISTS) {
+    AmountSetResult registration_result = asRegister(matamazom->storage, new_prod);
+    assert(registration_result != AS_NULL_ARGUMENT);
+    if (registration_result == AS_ITEM_ALREADY_EXISTS) {
         return MATAMAZOM_PRODUCT_ALREADY_EXIST;
     }
-    if (result == AS_OUT_OF_MEMORY) {
+    if (registration_result == AS_OUT_OF_MEMORY) {
         return MATAMAZOM_OUT_OF_MEMORY;
     }
     //only positive amounts added here
@@ -96,14 +96,32 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
 }
 
 MatamazomResult mtmChangeProductAmount(Matamazom matamazom, const unsigned int id, const double amount){
-
     if (matamazom == NULL){
-        return NULL;
+        return MATAMAZOM_NULL_ARGUMENT;
     }
     Product current_product = findProduct(matamazom->storage,id);
-    AmountSetResult change_amount_result = asChangeAmount(matamazom->storage,current_product,amount);
-
+    if (current_product == NULL){
+        return MATAMAZOM_PRODUCT_NOT_EXIST;
+    }
+    AmountSetResult changing_result =  asChangeAmount(matamazom->storage,current_product,amount);
+    return MATAMAZOM_SUCCESS;
 }
+
+MatamazomResult mtmClearProduct(Matamazom matamazom, const unsigned int id){
+    if (matamazom == NULL){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+    Product to_delete_product = findProduct(matamazom->storage,id);
+    if (to_delete_product == NULL){
+        return MATAMAZOM_PRODUCT_NOT_EXIST;
+    }
+
+    to_delete_product->freeData(to_delete_product->customData); //delete inner object in the product struct
+    AmountSetResult deletion_result = asDelete(matamazom->storage,to_delete_product);
+    return MATAMAZOM_SUCCESS;
+}
+
+
 
 static bool nameValid (const char* name){
     if ((*name >= 'a' && *name<= 'z') || (*name >= 'A' && *name <= 'Z') || (*name >= '0' && *name <= '9')) {
@@ -144,19 +162,19 @@ static int compareProduct(ASElement product1, ASElement product2){
 static ASElement copyProduct(ASElement product) {
     Product copy = malloc(sizeof(*copy));
     if (copy != NULL) {
-        copy->id = ((Product)(product))->id;
-        strcpy(copy->name,((Product)(product))->name);
-        copy->amountType = ((Product)(product))->amountType;
-        copy->customData = ((Product)(product))->copyData(((Product)(product))->customData);
-        copy->prodPrice = ((Product)(product))->prodPrice;
-        copy->sales = ((Product)(product))->sales;
-        copy->copyData = ((Product)(product))->copyData;
-        copy->freeData = ((Product)(product))->freeData;
+        copy->id = ((Product) (product))->id;
+        strcpy(copy->name, ((Product) (product))->name);
+        copy->amountType = ((Product) (product))->amountType;
+        copy->customData = ((Product) (product))->copyData(((Product) (product))->customData);
+        copy->prodPrice = ((Product) (product))->prodPrice;
+        copy->sales = ((Product) (product))->sales;
+        copy->copyData = ((Product) (product))->copyData;
+        copy->freeData = ((Product) (product))->freeData;
     }
     return copy;
+}
 
 static Product findProduct (AmountSet storage,const unsigned int id){
-    Product firstProduct = asGetFirst(storage);
     AS_FOREACH(Product,prod1,storage){
         if (prod1->id == id){
             return prod1;

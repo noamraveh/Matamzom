@@ -8,9 +8,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
-
-struct Products_t {
+struct Product_t {
     char* name;
     unsigned int id;
     MatamazomAmountType amountType;
@@ -20,5 +20,6 @@ struct Products_t {
     MtmFreeData freeData;
     MtmGetProductPrice prodPrice;
 };
+
 
 
