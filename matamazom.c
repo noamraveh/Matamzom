@@ -6,16 +6,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
-#include "product.h"
+//#include "product.h"
 #include <math.h>
-
-static bool nameValid (const char* name);
-static bool checkAmountType (double amount, MatamazomAmountType type);
-static double absDouble (double number);
-static ASElement copyProduct(ASElement product);
-static void freeProduct(ASElement product);
-static int compareProduct(ASElement product1, ASElement product2);
-static Product findProduct (AmountSet storage,unsigned int id);
 
 typedef struct Product_t {
     char* name;
@@ -27,6 +19,14 @@ typedef struct Product_t {
     MtmFreeData freeData;
     MtmGetProductPrice prodPrice;
 } *Product;
+
+static bool nameValid (const char* name);
+static bool checkAmountType (double amount, MatamazomAmountType type);
+static double absDouble (double number);
+static ASElement copyProduct(ASElement product);
+static void freeProduct(ASElement product);
+static int compareProduct(ASElement product1, ASElement product2);
+static Product findProduct (AmountSet storage,unsigned int id);
 
 
 struct Matamazom_t {
