@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-
 #define IsNULL(ptr1,ptr2)    ((ptr1 == NULL || ptr2 == NULL) ? (true) : (false))
 
 typedef struct ElementNode_t* ElementNode;
@@ -28,7 +27,6 @@ struct AmountSet_t {
 };
 
 static ElementNode createElementNode(AmountSet amount_set_ptr, ASElement element);
-
 static ElementNode findElement(AmountSet set, ElementNode element);
 
 AmountSet asCreate(CopyASElement copyElement,
@@ -152,9 +150,7 @@ AmountSet asCopy(AmountSet set){
 
 int asGetSize(AmountSet set){
     if (set == NULL){
-
         return -1;
-
     }
     return set->size;
 }
@@ -175,7 +171,6 @@ AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount)
         return AS_NULL_ARGUMENT;
     }
     ElementNode ptr = findElement(set,element);
-
     if (ptr == NULL){
         return AS_ITEM_DOES_NOT_EXIST;
     }
@@ -190,7 +185,6 @@ AmountSetResult asRegister(AmountSet set, ASElement element){
     if (asContains(set,element)){
         return AS_ITEM_ALREADY_EXISTS;
     }
-
     /*if (set->first_node->element == NULL){
         set->first_node->element = element;
         set->size++;
@@ -225,7 +219,6 @@ AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double am
     ptr->amount += amount;
     return AS_SUCCESS;
 }
-
 
 
 ASElement asGetFirst(AmountSet set){
@@ -289,7 +282,6 @@ static ElementNode findElement(AmountSet set, ElementNode element){
     assert(set != NULL && element != NULL);
     ElementNode ptr = set->first_node;
     while(ptr != NULL){
-
         if(ptr->element == NULL){
              break;
         }
@@ -315,4 +307,6 @@ static ElementNode createElementNode(AmountSet amount_set_ptr, ASElement element
     ptr->element = amount_set_ptr->copyElement(element);
     return ptr;
 }
+
+
 
