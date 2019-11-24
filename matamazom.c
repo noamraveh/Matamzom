@@ -12,6 +12,9 @@
 static bool nameValid (const char* name);
 static bool checkAmountType (double amount, MatamazomAmountType type);
 static double absDouble (double number);
+static ASElement copyProduct(ASElement product);
+static void freeProduct(ASElement product);
+static int compareProduct(ASElement product1, ASElement product2);
 static Product findProduct (AmountSet storage,const unsigned int id);
 
 typedef struct Product_t {
@@ -25,28 +28,7 @@ typedef struct Product_t {
     MtmGetProductPrice prodPrice;
 } *Product;
 
-static void freeProduct(ASElement product){
-    ((Product)product)->freeData(((Product)product)->customData);
-    free(product);
-}
-static int compareProduct(ASElement product1, ASElement product2){
-    return (int)(((Product)product1)->id) - (int)(((Product)(product2))->id);
-}
 
-static ASElement copyProduct(ASElement product) {
-    Product copy = malloc(sizeof(*copy));
-    if (copy != NULL) {
-        copy->id = ((Product)(product))->id;
-        strcpy(copy->name,((Product)(product))->name);
-        copy->amountType = ((Product)(product))->amountType;
-        copy->customData = ((Product)(product))->copyData(((Product)(product))->customData);
-        copy->prodPrice = ((Product)(product))->prodPrice;
-        copy->sales = ((Product)(product))->sales;
-        copy->copyData = ((Product)(product))->copyData;
-        copy->freeData = ((Product)(product))->freeData;
-    }
-    return copy;
-}
 struct Matamazom_t {
     AmountSet storage;
     List orders;
@@ -58,7 +40,8 @@ Matamazom matamzomCreate() {
         return NULL;
     }
     matamazom->storage = asCreate(copyProduct,freeProduct,compareProduct);
-   // matamazom->orders = listCreate(copyProduct, freeProduct);
+    //need to be created when we reach the order part of the project
+   // matamazom->orders = listCreate(copyOrder, freeOrder);
     return matamazom;
 }
 
@@ -113,6 +96,7 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
 }
 
 MatamazomResult mtmChangeProductAmount(Matamazom matamazom, const unsigned int id, const double amount){
+
     if (matamazom == NULL){
         return NULL;
     }
@@ -120,8 +104,6 @@ MatamazomResult mtmChangeProductAmount(Matamazom matamazom, const unsigned int i
     AmountSetResult change_amount_result = asChangeAmount(matamazom->storage,current_product,amount);
 
 }
-
-
 
 static bool nameValid (const char* name){
     if ((*name >= 'a' && *name<= 'z') || (*name >= 'A' && *name <= 'Z') || (*name >= '0' && *name <= '9')) {
@@ -151,6 +133,27 @@ static bool checkAmountType (double amount, MatamazomAmountType type){
     return result;
 
 }
+static void freeProduct(ASElement product){
+    ((Product)product)->freeData(((Product)product)->customData);
+    free(product);
+}
+static int compareProduct(ASElement product1, ASElement product2){
+    return (int)(((Product)product1)->id) - (int)(((Product)(product2))->id);
+}
+
+static ASElement copyProduct(ASElement product) {
+    Product copy = malloc(sizeof(*copy));
+    if (copy != NULL) {
+        copy->id = ((Product)(product))->id;
+        strcpy(copy->name,((Product)(product))->name);
+        copy->amountType = ((Product)(product))->amountType;
+        copy->customData = ((Product)(product))->copyData(((Product)(product))->customData);
+        copy->prodPrice = ((Product)(product))->prodPrice;
+        copy->sales = ((Product)(product))->sales;
+        copy->copyData = ((Product)(product))->copyData;
+        copy->freeData = ((Product)(product))->freeData;
+    }
+    return copy;
 
 static Product findProduct (AmountSet storage,const unsigned int id){
     Product firstProduct = asGetFirst(storage);
