@@ -1,13 +1,12 @@
 #include "matamazom.h"
 #include "amount_set.h"
 #include "list.h"
-//#include "product.h"
-//#include "order.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "product.h"
 #include <math.h>
 
 static bool nameValid (const char* name);
@@ -16,6 +15,7 @@ static double absDouble (double number);
 static ASElement copyProduct(ASElement product);
 static void freeProduct(ASElement product);
 static int compareProduct(ASElement product1, ASElement product2);
+static Product findProduct (AmountSet storage,const unsigned int id);
 
 typedef struct Product_t {
     char* name;
@@ -27,6 +27,7 @@ typedef struct Product_t {
     MtmFreeData freeData;
     MtmGetProductPrice prodPrice;
 } *Product;
+
 
 struct Matamazom_t {
     AmountSet storage;
@@ -95,11 +96,13 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
 }
 
 MatamazomResult mtmChangeProductAmount(Matamazom matamazom, const unsigned int id, const double amount){
-    if (matamazom == NULL || )
-}
 
-MatamazomResult mtmClearProduct(Matamazom matamazom, const unsigned int id){
-   // AmountSetResult cleared = asDelete(matamazom->storage,);
+    if (matamazom == NULL){
+        return NULL;
+    }
+    Product current_product = findProduct(matamazom->storage,id);
+    AmountSetResult change_amount_result = asChangeAmount(matamazom->storage,current_product,amount);
+
 }
 
 static bool nameValid (const char* name){
@@ -113,6 +116,7 @@ static double absDouble (double number){
         return -number;
     }
     return number;
+
 }
 static bool checkAmountType (double amount, MatamazomAmountType type){
     bool result;
@@ -150,4 +154,13 @@ static ASElement copyProduct(ASElement product) {
         copy->freeData = ((Product)(product))->freeData;
     }
     return copy;
+
+static Product findProduct (AmountSet storage,const unsigned int id){
+    Product firstProduct = asGetFirst(storage);
+    AS_FOREACH(Product,prod1,storage){
+        if (prod1->id == id){
+            return prod1;
+        }
+    }
+    return NULL;
 }
