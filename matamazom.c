@@ -1,6 +1,6 @@
 #include "matamazom.h"
 #include "amount_set.h"
-#include "list.h"
+#include "set.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,6 +9,7 @@
 //#include "product.h"
 #include <math.h>
 
+//needs to move to separate files
 typedef struct Product_t {
     char* name;
     unsigned int id;
@@ -20,28 +21,80 @@ typedef struct Product_t {
     MtmGetProductPrice prodPrice;
 } *Product;
 
+typedef struct order_t *Order;
+typedef struct orderProduct_t *OrderProduct;
+
+/*
+struct orderProduct_t {
+    unsigned int product_id;
+    double amount;
+    OrderProduct next_prod_in_order;
+};*/
+
+
+struct order_t {
+    unsigned int order_id;
+    AmountSet products_in_order;
+    Order next_order;
+};
+/*
+static SetElement copyOrder (SetElement prod_in_order){
+    OrderProduct copy = malloc(sizeof(*copy));
+    if (copy != NULL ){
+        copy->product_id = ((OrderProduct)(prod_in_order))->product_id;
+        copy->amount = ((OrderProduct)(prod_in_order))->amount;
+        copy->next_prod_in_order = ((OrderProduct)(prod_in_order))->next_prod_in_order;
+    }
+    return copy;
+
+}
+static void freeOrder (SetElement prod_in_order){
+    while ((OrderProduct)prod_in_order != NULL){
+        OrderProduct to_delete = ((OrderProduct)(prod_in_order));
+        prod_in_order = ((OrderProduct)(prod_in_order))->next_prod_in_order;
+        free(to_delete);
+    }
+}
+static int compareProductInOrder(SetElement product1, SetElement product2){
+    return (int)(((OrderProduct)(product1))->product_id - ((OrderProduct)(product2))->product_id);
+}
+*/
+
+static OrderProduct findProductInOrder (Order order, unsigned int product_id){
+    OrderProduct ptr = order->prod_in_order;
+    while (ptr != NULL){
+        if (ptr->product_id == product_id){
+            return ptr;
+        }
+        ptr = ptr->next_prod_in_order;
+    }
+    return ptr;
+}
 static bool nameValid (const char* name);
 static bool checkAmountType (double amount, MatamazomAmountType type);
 static double absDouble (double number);
 static ASElement copyProduct(ASElement product);
 static void freeProduct(ASElement product);
 static int compareProduct(ASElement product1, ASElement product2);
-static Product findProduct (AmountSet storage,unsigned int id);
-
+static Product findProduct (AmountSet storage,const unsigned int id);
+static Order findOrder (Set orders,const unsigned int id);
 
 struct Matamazom_t {
     AmountSet storage;
-    List orders;
+    Set orders;
+    unsigned int * number_of_orders;
 };
 
-Matamazom matamzomCreate() {
+Matamazom matamazomCreate() {
     Matamazom matamazom = malloc(sizeof(*matamazom));
     if (matamazom == NULL){
         return NULL;
     }
+    copySetElements = ;
+
     matamazom->storage = asCreate(copyProduct,freeProduct,compareProduct);
-    //need to be created when we reach the order part of the project
-   // matamazom->orders = listCreate(copyOrder, freeOrder);
+    matamazom->orders = setCreate(,,);
+    *(matamazom->number_of_orders) = 0;
     return matamazom;
 }
 
@@ -50,7 +103,7 @@ void matamazomDestroy(Matamazom matamazom){
         return;
     }
     asDestroy(matamazom->storage);
-    listDestroy(matamazom->orders);
+    setDestroy(matamazom->orders);
     free(matamazom);
 }
 
@@ -92,7 +145,7 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
     }
     //only positive amounts added here
     asChangeAmount(matamazom->storage, new_prod, amount);
-    return MATAMAZOM_SUCCESS;
+     return MATAMAZOM_SUCCESS;
 }
 
 MatamazomResult mtmChangeProductAmount(Matamazom matamazom, const unsigned int id, const double amount){
@@ -122,6 +175,56 @@ MatamazomResult mtmClearProduct(Matamazom matamazom, const unsigned int id){
 }
 
 
+unsigned int mtmCreateNewOrder(Matamazom matamazom) {
+    if (matamazom == NULL){
+        return 0;
+    }
+    Order new_order = malloc(sizeof(*new_order));
+    if (new_order == NULL) {
+        return 0;
+    }
+    new_order->order_id = ++(*(matamazom->number_of_orders));
+    SetResult creation_result = setAdd(matamazom->orders,new_order);
+    if (creation_result == SET_OUT_OF_MEMORY){
+        return 0;
+    }
+    assert (creation_result!= SET_ITEM_ALREADY_EXISTS);
+    return new_order->order_id;
+
+}
+
+MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom, const unsigned int orderId,
+                                              const unsigned int productId, const double amount) {
+    if (matamazom == NULL){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+    Order current_order = findOrder(matamazom->orders,orderId);
+    if (current_order == NULL){
+        return MATAMAZOM_ORDER_NOT_EXIST;
+    }
+    Product current_product_ptr = findProduct(matamazom->storage,productId);
+    if (current_product_ptr == NULL){
+        return MATAMAZOM_PRODUCT_NOT_EXIST;
+    }
+    if (!checkAmountType(amount,current_product_ptr->amountType)){
+        return MATAMAZOM_INVALID_AMOUNT;
+    }
+    if (amount == 0) {
+        return MATAMAZOM_SUCCESS;
+    }
+    OrderProduct amount_in_order = findProductInOrder(current_order, productId);
+
+    if (amount_in_order == NULL) { //we need to add the product to the order
+
+    }
+    if (amount <= amount_in_order->amount)  { //we need to remove the product
+
+    }
+
+
+
+
+}
 
 static bool nameValid (const char* name){
     if ((*name >= 'a' && *name<= 'z') || (*name >= 'A' && *name <= 'Z') || (*name >= '0' && *name <= '9')) {
@@ -149,8 +252,8 @@ static bool checkAmountType (double amount, MatamazomAmountType type){
             result = true;
     }
     return result;
-
 }
+
 static void freeProduct(ASElement product){
     ((Product)product)->freeData(((Product)product)->customData);
     free(product);
@@ -178,6 +281,15 @@ static Product findProduct (AmountSet storage,const unsigned int id){
     AS_FOREACH(Product,prod1,storage){
         if (prod1->id == id){
             return prod1;
+        }
+    }
+    return NULL;
+}
+
+static Order findOrder (Set orders,const unsigned int id){
+    AS_FOREACH(Order,curr_order,orders){
+        if (curr_order->order_id == id){
+            return curr_order;
         }
     }
     return NULL;
