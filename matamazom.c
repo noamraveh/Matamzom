@@ -78,6 +78,10 @@ static void freeProduct(ASElement product);
 static int compareProduct(ASElement product1, ASElement product2);
 static Product findProduct (AmountSet storage,const unsigned int id);
 static Order findOrder (Set orders,const unsigned int id);
+static void freeOrder(SetElement order);
+static SetElement copyOrder(SetElement order);
+static int compareOrder(SetElement order1, SetElement order2);
+
 
 struct Matamazom_t {
     AmountSet storage;
@@ -90,10 +94,9 @@ Matamazom matamazomCreate() {
     if (matamazom == NULL){
         return NULL;
     }
-    copySetElements = ;
-
+    //need to add NULL cases here (out of memory)
     matamazom->storage = asCreate(copyProduct,freeProduct,compareProduct);
-    matamazom->orders = setCreate(,,);
+    matamazom->orders = setCreate(copyOrder,freeOrder,compareOrder);
     *(matamazom->number_of_orders) = 0;
     return matamazom;
 }
@@ -277,6 +280,17 @@ static ASElement copyProduct(ASElement product) {
     return copy;
 }
 
+static SetElement copyOrder(SetElement order){
+    AmountSet copy = asCopy(order);
+    return copy;
+}
+
+static void freeOrder(SetElement order){
+    asDestroy(order);
+}
+static int compareOrder(SetElement order1, SetElement order2){
+    return (int)(((Order)order1)->order_id) - (int)(((Order)(order2))->order_id);
+}
 static Product findProduct (AmountSet storage,const unsigned int id){
     AS_FOREACH(Product,prod1,storage){
         if (prod1->id == id){
@@ -294,3 +308,6 @@ static Order findOrder (Set orders,const unsigned int id){
     }
     return NULL;
 }
+
+
+
