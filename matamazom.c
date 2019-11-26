@@ -20,7 +20,6 @@ typedef struct Product_t {
     MtmFreeData freeData;
     MtmGetProductPrice prodPrice;
 } *Product;
-
 typedef struct order_t *Order;
 typedef struct orderProduct_t *OrderProduct;
 
@@ -31,12 +30,14 @@ struct orderProduct_t {
     OrderProduct next_prod_in_order;
 };*/
 
-
 struct order_t {
     unsigned int order_id;
     AmountSet products_in_order;
     Order next_order;
 };
+
+
+
 /*
 static SetElement copyOrder (SetElement prod_in_order){
     OrderProduct copy = malloc(sizeof(*copy));
@@ -70,6 +71,7 @@ static OrderProduct findProductInOrder (Order order, unsigned int product_id){
     }
     return ptr;
 }
+
 static bool nameValid (const char* name);
 static bool checkAmountType (double amount, MatamazomAmountType type);
 static double absDouble (double number);
@@ -78,6 +80,10 @@ static void freeProduct(ASElement product);
 static int compareProduct(ASElement product1, ASElement product2);
 static Product findProduct (AmountSet storage,const unsigned int id);
 static Order findOrder (Set orders,const unsigned int id);
+static void freeOrder(SetElement order);
+static SetElement copyOrder(SetElement order);
+static int compareOrder(SetElement order1, SetElement order2);
+
 
 struct Matamazom_t {
     AmountSet storage;
@@ -90,10 +96,14 @@ Matamazom matamazomCreate() {
     if (matamazom == NULL){
         return NULL;
     }
-    copySetElements = ;
-
     matamazom->storage = asCreate(copyProduct,freeProduct,compareProduct);
-    matamazom->orders = setCreate(,,);
+    if (matamazom->storage == NULL){
+        return NULL;
+    }
+    matamazom->orders = setCreate(copyOrder,freeOrder,compareOrder);
+    if (matamazom->orders == NULL){
+        return NULL;
+    }
     *(matamazom->number_of_orders) = 0;
     return matamazom;
 }
@@ -190,7 +200,6 @@ unsigned int mtmCreateNewOrder(Matamazom matamazom) {
     }
     assert (creation_result!= SET_ITEM_ALREADY_EXISTS);
     return new_order->order_id;
-
 }
 
 MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom, const unsigned int orderId,
@@ -198,8 +207,8 @@ MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom, const unsigne
     if (matamazom == NULL){
         return MATAMAZOM_NULL_ARGUMENT;
     }
-    Order current_order = findOrder(matamazom->orders,orderId);
-    if (current_order == NULL){
+    AmountSet current_order_ptr = findOrder(matamazom->orders,orderId);
+    if (current_order_ptr == NULL){
         return MATAMAZOM_ORDER_NOT_EXIST;
     }
     Product current_product_ptr = findProduct(matamazom->storage,productId);
@@ -212,13 +221,15 @@ MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom, const unsigne
     if (amount == 0) {
         return MATAMAZOM_SUCCESS;
     }
-    OrderProduct amount_in_order = findProductInOrder(current_order, productId);
+
+
+    OrderProduct amount_in_order = findProductInOrder(current_order_ptr, productId);
 
     if (amount_in_order == NULL) { //we need to add the product to the order
-
+        asRegister(current_order_ptr,current_product_ptr);
     }
-    if (amount <= amount_in_order->amount)  { //we need to remove the product
-
+    if (amount <= amount_in_order->)  { //we need to remove the product
+        asDelete(current_order_ptr,current_product_ptr);
     }
 
 
@@ -253,15 +264,14 @@ static bool checkAmountType (double amount, MatamazomAmountType type){
     }
     return result;
 }
-
 static void freeProduct(ASElement product){
-    ((Product)product)->freeData(((Product)product)->customData);
+    Product my_product = (Product)product;
+    my_product->freeData(my_product->customData);
     free(product);
 }
 static int compareProduct(ASElement product1, ASElement product2){
     return (int)(((Product)product1)->id) - (int)(((Product)(product2))->id);
 }
-
 static ASElement copyProduct(ASElement product) {
     Product copy = malloc(sizeof(*copy));
     if (copy != NULL) {
@@ -276,7 +286,16 @@ static ASElement copyProduct(ASElement product) {
     }
     return copy;
 }
-
+static void freeOrder(SetElement order) {
+    asDestroy(order);
+}
+static int compareOrder(SetElement order1, SetElement order2){
+    return (int)(((Order)order1)->order_id) - (int)(((Order)(order2))->order_id);
+}
+static SetElement copyOrder(SetElement order){
+    AmountSet copy = asCopy(order);
+    return copy;
+}
 static Product findProduct (AmountSet storage,const unsigned int id){
     AS_FOREACH(Product,prod1,storage){
         if (prod1->id == id){
@@ -285,12 +304,14 @@ static Product findProduct (AmountSet storage,const unsigned int id){
     }
     return NULL;
 }
-
 static Order findOrder (Set orders,const unsigned int id){
-    AS_FOREACH(Order,curr_order,orders){
+    SET_FOREACH(Order,curr_order,orders){
         if (curr_order->order_id == id){
             return curr_order;
         }
     }
     return NULL;
 }
+
+
+
