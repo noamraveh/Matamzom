@@ -1,5 +1,6 @@
 #include "matamazom.h"
 #include "amount_set.h"
+#include "matamazom_print.h"
 #include "list.h"
 #include <string.h>
 #include <stdlib.h>
@@ -161,6 +162,14 @@ MatamazomResult mtmClearProduct(Matamazom matamazom, const unsigned int id){
     if (product_to_delete == NULL){
         return MATAMAZOM_PRODUCT_NOT_EXIST;
     }
+    LIST_FOREACH(Order,order,matamazom->orders){
+        AS_FOREACH(Product,product,order->products_in_order){
+            if (product->product_id == id){
+                asDelete(order->products_in_order,product);
+                break;
+            }
+        }
+    }
     product_to_delete->freeData(product_to_delete->customData); //delete inner object in the product struct
     assert (matamazom->storage != NULL && product_to_delete != NULL);
     AmountSetResult deletion_result = asDelete(matamazom->storage,product_to_delete);
@@ -212,22 +221,167 @@ MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom, const unsigne
     }
     assert(order_ptr != NULL && product_ptr != NULL);
     // registering the product to the order
+
     AmountSetResult registration_result = asRegister(order_ptr->products_in_order, product_ptr);
+
     if (registration_result == AS_ITEM_ALREADY_EXISTS) { // the product was already in the order
         AmountSetResult changing_result = asChangeAmount(order_ptr->products_in_order, product_ptr, amount);
         if (changing_result == AS_INSUFFICIENT_AMOUNT) { // if the amount to decrease was larger than the amount in order
             assert(order_ptr->products_in_order != NULL && product_ptr != NULL);
-            AmountSetResult deletion_result = asDelete(order_ptr->products_in_order, product_ptr);
+            asDelete(order_ptr->products_in_order, product_ptr); // * removed variable name
         }
         if (changing_result == AS_SUCCESS) { // amount to increase was added the the amount of the product
             return MATAMAZOM_SUCCESS;
         }
     }
     if (registration_result == AS_SUCCESS) { // item that was not in the order was added
-        AmountSetResult changing_result = asChangeAmount(order_ptr->products_in_order, product_ptr, amount);
+        asChangeAmount(order_ptr->products_in_order, product_ptr, amount); // * removed variable name
     }
     return MATAMAZOM_SUCCESS;
 }
+
+MatamazomResult mtmShipOrder(Matamazom matamazom, const unsigned int orderId){
+    if (matamazom == NULL ){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+    Order current_order = findOrder(matamazom->orders,orderId);
+    if (current_order == NULL){
+        return MATAMAZOM_ORDER_NOT_EXIST;
+    }
+    double amount_in_order;
+    double amount_in_storage;
+    //check all products for insufficient amount
+    AS_FOREACH(Product,current_prod_in_order,current_order->products_in_order){
+        Product product_in_storage = findProduct(matamazom->storage,current_prod_in_order->product_id);
+        asGetAmount(current_order->products_in_order,current_prod_in_order,&amount_in_order);
+        asGetAmount(matamazom->storage,product_in_storage,&amount_in_storage);
+        if (amount_in_order>amount_in_storage){
+            return MATAMAZOM_INSUFFICIENT_AMOUNT;
+        }
+    }
+    //update amount and sales for each product of the order in the storage
+    AS_FOREACH(Product,current_prod_in_order,current_order->products_in_order){
+        Product product_in_storage = findProduct(matamazom->storage,current_prod_in_order->product_id);
+        asGetAmount(current_order->products_in_order,current_prod_in_order,&amount_in_order);
+        asChangeAmount(matamazom->storage,product_in_storage,amount_in_order);
+        product_in_storage->sales += current_prod_in_order->prodPrice(current_prod_in_order->customData,amount_in_order);
+    }
+
+    //update order iterator to point to current order for deletion
+    LIST_FOREACH(Order,searching_order,matamazom->orders){
+        if(searching_order->order_id == current_order->order_id){
+            break;
+        };
+    }
+    listRemoveCurrent(matamazom->orders);
+    return MATAMAZOM_SUCCESS;
+
+}
+MatamazomResult mtmCancelOrder(Matamazom matamazom, const unsigned int orderId){
+    if (matamazom == NULL ){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+    Order current_order = findOrder(matamazom->orders,orderId);
+    if (current_order == NULL){
+        return MATAMAZOM_ORDER_NOT_EXIST;
+    }
+    //update order iterator to point to current order for deletion
+    LIST_FOREACH(Order,searching_order,matamazom->orders){
+        if(searching_order->order_id == current_order->order_id){
+            break;
+        }
+    }
+    listRemoveCurrent(matamazom->orders);
+    return MATAMAZOM_SUCCESS;
+}
+
+MatamazomResult mtmPrintInventory(Matamazom matamazom, FILE *output){
+    if (matamazom == NULL || output == NULL){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+    fprintf(output,"Inventory Status:\n");
+    if (matamazom->storage == NULL){
+        fclose(output);
+        return MATAMAZOM_SUCCESS;
+    }
+    AS_FOREACH(Product,product,matamazom->storage){
+        double product_amount;
+        asGetAmount(matamazom->storage,product,&product_amount);
+        double product_price = product->prodPrice(product->customData,product_amount);
+        mtmPrintProductDetails(product->name,product->product_id,product_amount,product_price,output);
+    }
+    fclose(output);
+    return MATAMAZOM_SUCCESS;
+}
+
+MatamazomResult mtmPrintOrder(Matamazom matamazom, const unsigned int orderId, FILE *output){
+    if (matamazom == NULL || output == NULL){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+// need to add case of no orders
+    Order curr_order = findOrder(matamazom->orders,orderId);
+    double order_sum=0;
+    AS_FOREACH(Product ,product,curr_order->products_in_order){
+        Product product_in_order = findProductInOrder(curr_order->products_in_order,product->product_id);
+        double product_amount_in_order;
+        asGetAmount(curr_order->products_in_order,curr_order,&product_amount_in_order);
+        double total_product_price = product_in_order->prodPrice(product_in_order->customData,product_amount_in_order);
+        product_in_order->prodPrice(product_in_order->customData,product_amount_in_order);
+
+        mtmPrintOrderHeading(curr_order->order_id,output);
+        mtmPrintProductDetails(product->name,product->product_id,product_amount_in_order,total_product_price,output);
+        order_sum +=total_product_price;
+    }
+    mtmPrintOrderSummary(order_sum,output);
+    fclose(output);
+    return MATAMAZOM_SUCCESS;
+}
+
+MatamazomResult mtmPrintBestSelling(Matamazom matamazom, FILE *output){
+    if (matamazom == NULL || output == NULL){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+
+    double best_seller_sales = 0;
+    int best_seller_id = -1;
+    //find id of best seller
+    AS_FOREACH(Product,product,matamazom->storage){
+        if (product->sales > best_seller_sales) {
+            best_seller_id = (int) product->product_id;
+            continue;
+        }
+        if (product->sales == best_seller_sales){
+            best_seller_id = (best_seller_id < product->product_id) ? (int)best_seller_id : (int)product->product_id;
+        }
+    }
+    Product best_seller_ptr = findProductInOrder(matamazom->storage,best_seller_id);
+    fprintf(output,"Best Selling Product:\n");
+    if (best_seller_id == -1){
+        fprintf(output,"none");
+        fclose(output);
+        return MATAMAZOM_SUCCESS;
+    }
+    mtmPrintIncomeLine(best_seller_ptr->name,best_seller_id,best_seller_sales,output);
+    fclose(output);
+    return MATAMAZOM_SUCCESS;
+}
+
+MatamazomResult mtmPrintFiltered(Matamazom matamazom, MtmFilterProduct customFilter, FILE *output){
+    if (matamazom == NULL || output == NULL){
+        return MATAMAZOM_NULL_ARGUMENT;
+    }
+
+    AS_FOREACH(Product,curr_product,matamazom->storage){
+        double product_amount;
+        asGetAmount(matamazom->storage,curr_product,&product_amount);
+        double product_price = curr_product->prodPrice(curr_product->customData,product_amount);
+        if(customFilter(curr_product->product_id,curr_product->name,product_amount,curr_product->customData)){
+            mtmPrintProductDetails(curr_product->name,curr_product->product_id,product_amount,product_price,output);
+        }
+    }
+    return MATAMAZOM_SUCCESS;
+}
+
 
 static bool nameValid (const char* name){
     if ((*name >= 'a' && *name<= 'z') || (*name >= 'A' && *name <= 'Z') || (*name >= '0' && *name <= '9')) {
@@ -261,7 +415,6 @@ static void freeProduct(ASElement product){
     prod_to_delete->freeData(prod_to_delete->customData);
     free(prod_to_delete);
 }
-
 static int compareProduct(ASElement product1, ASElement product2){
     Product prod1 = product1;
     Product prod2 = product2;
@@ -287,7 +440,6 @@ int compareOrderId (ListElement id1 , ListElement id2){
     Order order2 = id2;
     return (int)(order2->order_id) - (int)(order1->order_id);
 }
-
 static ListElement copyOrderProducts(ListElement order){
     Order order_copy = order;
     Order copy = malloc(sizeof(*copy));
@@ -325,12 +477,11 @@ static Product findProduct (AmountSet storage ,const unsigned int id){
     return NULL;
 }
 static Product findProductInOrder(AmountSet products_in_order, unsigned int productId){
-    AS_FOREACH(Product, curr_prod, products_in_order){
+        AS_FOREACH(Product, curr_prod, products_in_order){
         if (curr_prod->product_id == productId){
             return curr_prod;
         }
     }return NULL;
 }
-
 
 
