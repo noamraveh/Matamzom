@@ -27,7 +27,7 @@ struct AmountSet_t {
 };
 
 static ElementNode createElementNode(AmountSet amount_set_ptr, ASElement element);
-static ElementNode findElement(AmountSet set, ElementNode element);
+static ElementNode findElement(AmountSet set, ASElement element);
 
 AmountSet asCreate(CopyASElement copyElement,
                    FreeASElement freeElement,
@@ -56,7 +56,7 @@ AmountSet asCreate(CopyASElement copyElement,
 }
 
 AmountSetResult asDelete(AmountSet set, ASElement element){
-    if (element == NULL){
+    if (IsNULL(set,element)){
         return AS_NULL_ARGUMENT;
     }
     if (!asContains(set, element)){
@@ -140,6 +140,11 @@ AmountSet asCopy(AmountSet set){
             asDestroy(new_set);
             return NULL;
         }
+        ElementNode ptr_to_last = new_set->first_node;
+        while (ptr_to_last->next_node != NULL) {
+            ptr_to_last = ptr_to_last->next_node;
+        }
+        asChangeAmount(new_set,ptr_to_last->element,ptr->amount);
         ptr = ptr->next_node;
     }
     //should we change the iterator of the original set if new set failed?
@@ -170,6 +175,9 @@ AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount)
     if (IsNULL(set,element)){
         return AS_NULL_ARGUMENT;
     }
+    if (outAmount == NULL){
+        return AS_NULL_ARGUMENT;
+    }
     ElementNode ptr = findElement(set,element);
     if (ptr == NULL){
         return AS_ITEM_DOES_NOT_EXIST;
@@ -185,22 +193,35 @@ AmountSetResult asRegister(AmountSet set, ASElement element){
     if (asContains(set,element)){
         return AS_ITEM_ALREADY_EXISTS;
     }
-    /*if (set->first_node->element == NULL){
-        set->first_node->element = element;
+
+    if (set->first_node == NULL) {//adding an element to an empty set
+        ElementNode new_node = createElementNode(set,element);
+        if (new_node == NULL){
+            return AS_OUT_OF_MEMORY;
+        }
+        new_node->next_node = NULL;
+        set->first_node = new_node;
         set->size++;
         set->iterator = NULL;
         return AS_SUCCESS;
-    }*/
-
-    ElementNode new_node = createElementNode(set,element);
-    if (new_node == NULL){
-        return AS_OUT_OF_MEMORY;
     }
-    assert(new_node != NULL);
-    new_node->next_node = set->first_node; //adding the new element to the list's head
-    set->first_node = new_node;
-    set->size++;
-    set->iterator = NULL;
+
+    if (set->first_node != NULL) {//adding element to set with existing elements
+
+        ElementNode ptr_to_last = set->first_node;
+        while (ptr_to_last->next_node != NULL) {
+            ptr_to_last = ptr_to_last->next_node;
+        }
+        ElementNode new_node = createElementNode(set, element);
+        if (new_node == NULL) {
+            return AS_OUT_OF_MEMORY;
+        }
+        new_node->next_node = NULL; //adding the new element to the list's end
+        ptr_to_last->next_node = new_node;
+        set->size++;
+        set->iterator = NULL;
+        return AS_SUCCESS;
+    }
     return AS_SUCCESS;
 }
 
@@ -266,7 +287,7 @@ ASElement asGetNext(AmountSet set){
 
     while (iterating_ptr != NULL) {
         if (set->compareElements(iterating_ptr->element,set->iterator->element) > 0 &&
-        set->compareElements(iterating_ptr->element,chosen_ptr->element) < 0) {
+            set->compareElements(iterating_ptr->element,chosen_ptr->element) < 0) {
             chosen_ptr = iterating_ptr;
         }
         iterating_ptr = iterating_ptr->next_node;
@@ -274,11 +295,69 @@ ASElement asGetNext(AmountSet set){
     set->iterator = chosen_ptr;
     return chosen_ptr->element;
 }
+/* updated version
+ * ASElement asGetFirst(AmountSet set){
+    if (set == NULL){
+        return NULL;
+    }
+    ElementNode ptr = set->first_node;
+    if (ptr == NULL){
+        return NULL;
+    }
+    set->iterator = ptr;
+    if (ptr->next_node == NULL){
+        set->iterator = ptr;
+    }
+    while (ptr != NULL){//find smallest node according to compare
+        if (set->compareElements(set->iterator->element, ptr->element) > 0){//next node < current node
+            set->iterator = ptr;
+        }
+        ptr = ptr->next_node;
+    }
+    assert(set->iterator != NULL);
+    return set->iterator->element;
+}
+
+ASElement asGetNext(AmountSet set){
+    if (set == NULL || set->iterator == NULL){
+        return NULL;
+    }
+    assert(set);
+
+    ElementNode iterating_ptr = set->iterator;
+    ElementNode chosen_ptr = NULL;
+
+    while (iterating_ptr != NULL) { //find first element greater than current iterator
+        if (set->compareElements (iterating_ptr->element,set->iterator->element)>0) {
+            chosen_ptr = iterating_ptr;
+            break;
+        }
+        if (iterating_ptr->next_node == NULL){
+            break;
+        }
+        iterating_ptr = iterating_ptr->next_node;
+    }
+
+    if (chosen_ptr == NULL){
+        return set->iterator->element;
+    }
+    iterating_ptr = set->first_node; //initialize iterator
+
+    while (iterating_ptr != NULL) {
+        if (set->compareElements(iterating_ptr->element,set->iterator->element) > 0 &&
+        set->compareElements(iterating_ptr->element,chosen_ptr->element) < 0) {
+            chosen_ptr = iterating_ptr;
+        }
+        iterating_ptr = iterating_ptr->next_node;
+    }
+    set->iterator = chosen_ptr;
+    return set->iterator->element;
+}
+
+*/
 
 
-
-
-static ElementNode findElement(AmountSet set, ElementNode element){
+static ElementNode findElement(AmountSet set, ASElement element){
     assert(set != NULL && element != NULL);
     ElementNode ptr = set->first_node;
     while(ptr != NULL){
