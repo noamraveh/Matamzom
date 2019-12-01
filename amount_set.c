@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define IsNULL(ptr1, ptr2)    ((ptr1 == NULL || ptr2 == NULL) ? (true) : (false))
+#define IS_NULL(ptr1, ptr2)    ((ptr1 == NULL || ptr2 == NULL) ? (true) : (false))
 
 typedef struct ElementNode_t *ElementNode;
 struct ElementNode_t {
@@ -36,7 +36,6 @@ AmountSet asCreate(CopyASElement copyElement,
     if (copyElement == NULL || freeElement == NULL || compareElements == NULL) {
         return NULL;
     }
-
     AmountSet as_ptr = malloc(sizeof(*as_ptr));
     if (as_ptr == NULL) {
         return NULL;
@@ -52,7 +51,7 @@ AmountSet asCreate(CopyASElement copyElement,
 }
 
 AmountSetResult asDelete(AmountSet set, ASElement element) {
-    if (IsNULL(set, element)) {
+    if (IS_NULL(set, element)) {
         return AS_NULL_ARGUMENT;
     }
     if (!asContains(set, element)) {
@@ -100,15 +99,13 @@ AmountSetResult asClear(AmountSet set) {
         return AS_SUCCESS;
     }
     ElementNode ptr = set->first_node;
-
-    while (ptr != NULL) {  //deleting all elements except the last one
+    while (ptr != NULL) {
         ElementNode to_delete = ptr;
         ptr = ptr->next_node;
         set->freeElement(to_delete->element);
         free(to_delete);
         set->size--;
     }
-    //   asDelete(set,ptr);     //deleting the last node
     set->first_node = NULL;
     return AS_SUCCESS;
 }
@@ -139,11 +136,9 @@ AmountSet asCopy(AmountSet set) {
         while (ptr_to_last->next_node != NULL) {
             ptr_to_last = ptr_to_last->next_node;
         }
-        /*  ElementNode ptr_to_current = findElement(new_set,ptr->element);*/
         asChangeAmount(new_set, ptr_to_last->element, ptr->amount);
         ptr = ptr->next_node;
     }
-    //should we change the iterator of the original set if new set failed?
     set->iterator = NULL;
     new_set->iterator = NULL;
     return new_set;
@@ -157,7 +152,7 @@ int asGetSize(AmountSet set) {
 }
 
 bool asContains(AmountSet set, ASElement element) {
-    if (IsNULL(set, element)) {
+    if (IS_NULL(set, element)) {
         return false;
     }
     if (findElement(set, element) == NULL) {
@@ -166,9 +161,8 @@ bool asContains(AmountSet set, ASElement element) {
     return true;
 }
 
-
 AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount) {
-    if (IsNULL(set, element)) {
+    if (IS_NULL(set, element)) {
         return AS_NULL_ARGUMENT;
     }
     if (outAmount == NULL) {
@@ -183,7 +177,7 @@ AmountSetResult asGetAmount(AmountSet set, ASElement element, double *outAmount)
 }
 
 AmountSetResult asRegister(AmountSet set, ASElement element) { // new version
-    if (IsNULL(set, element)) {
+    if (IS_NULL(set, element)) {
         return AS_NULL_ARGUMENT;
     }
     if (asContains(set, element)) {
@@ -216,7 +210,8 @@ AmountSetResult asRegister(AmountSet set, ASElement element) { // new version
     if (previous != NULL) { // adding element in the middle of the list
         previous->next_node = new_node;
         new_node->next_node = ptr;
-    } else { // adding element to the list's head
+    }
+    else { // adding element to the list's head
         new_node->next_node = set->first_node;
         set->first_node = new_node;
     }
@@ -226,7 +221,7 @@ AmountSetResult asRegister(AmountSet set, ASElement element) { // new version
 }
 
 AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double amount) {
-    if (IsNULL(set, element)) {
+    if (IS_NULL(set, element)) {
         return AS_NULL_ARGUMENT;
     }
     ElementNode ptr = findElement(set, element);
@@ -240,19 +235,16 @@ AmountSetResult asChangeAmount(AmountSet set, ASElement element, const double am
     return AS_SUCCESS;
 }
 
-
 ASElement asGetFirst(AmountSet set) {
-    if (IsNULL(set, set->first_node)) {
+    if (IS_NULL(set, set->first_node)) {
         return NULL;
     }
     set->iterator = set->first_node;
     return set->first_node->element;
-
-
 }
 
 ASElement asGetNext(AmountSet set) {
-    if (IsNULL(set, set->iterator)) {
+    if (IS_NULL(set, set->iterator)) {
         return NULL;
     }
     if (set->first_node == NULL) {
@@ -273,7 +265,6 @@ static ElementNode findElement(AmountSet set, ASElement element) {
         if (ptr->element == NULL) {
             break;
         }
-
         if (set->compareElements(ptr->element, element) == 0) {
             return ptr;
         }
@@ -287,10 +278,6 @@ static ElementNode createElementNode(AmountSet amount_set_ptr, ASElement element
     if (ptr == NULL) {
         return NULL;
     }
-/*    ptr->element = malloc(sizeof(*element));
-    if(ptr->element == NULL){
-        return NULL;
-    }*/
     ptr->amount = 0;
     ptr->next_node = NULL;
     ptr->element = amount_set_ptr->copyElement(element);
