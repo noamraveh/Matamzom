@@ -55,23 +55,6 @@ Matamazom matamazomCreate(){
     matamazom->number_of_orders = 0;
     return matamazom;
 }
-/*
-Matamazom matamazomCreate() {
-    Matamazom matamazom = malloc(sizeof(*matamazom));
-    if (matamazom == NULL){
-        return NULL;
-    }
-    matamazom->storage = asCreate(copyProduct,freeProduct,compareProduct);
-    if (matamazom->storage == NULL){
-        return NULL;
-    }
-    matamazom->orders = listCreate(asCopy
-    if (matamazom->orders == NULL){
-        return NULL;
-    }
-    *(matamazom->number_of_orders) = 0;
-    return matamazom;
-}*/
 
 void matamazomDestroy(Matamazom matamazom){
     if (matamazom == NULL){
@@ -125,9 +108,11 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
     AmountSetResult registration_result = asRegister(matamazom->storage, new_prod);
     assert(registration_result != AS_NULL_ARGUMENT);
 
-    free(new_prod->name);
-    new_prod->freeData(new_prod->customData);
+    //free(new_prod->name);
+    //new_prod->freeData(new_prod->customData);
     freeProduct(new_prod);
+
+    Product registered_product = findProduct(matamazom->storage,id);
 
     if (registration_result == AS_ITEM_ALREADY_EXISTS) {
         return MATAMAZOM_PRODUCT_ALREADY_EXIST;
@@ -136,7 +121,7 @@ MatamazomResult mtmNewProduct(Matamazom matamazom, const unsigned int id, const 
         return MATAMAZOM_OUT_OF_MEMORY;
     }
     //only positive amounts added here
-    asChangeAmount(matamazom->storage, new_prod, amount);
+    asChangeAmount(matamazom->storage,registered_product, amount);
      return MATAMAZOM_SUCCESS;
 }
 
@@ -180,8 +165,8 @@ MatamazomResult mtmClearProduct(Matamazom matamazom, const unsigned int id){
             }
         }
     }
-    product_to_delete->freeData(product_to_delete->customData); //delete inner object in the product struct
-    free(product_to_delete->name);
+    //product_to_delete->freeData(product_to_delete->customData); //delete inner object in the product struct
+    //free(product_to_delete->name);
     assert (matamazom->storage != NULL && product_to_delete != NULL);
     asDelete(matamazom->storage,product_to_delete);
     return MATAMAZOM_SUCCESS;
@@ -205,10 +190,13 @@ unsigned int mtmCreateNewOrder(Matamazom matamazom) {
     // again freeProduct didn't fill itself (needs to be checked)
     new_order->products_in_order = NULL;
     ListResult creation_result = listInsertLast(matamazom->orders,new_order); // inserts the order in the end
+
     if (creation_result == LIST_NULL_ARGUMENT || creation_result == LIST_OUT_OF_MEMORY){
         return 0;
     }
-    return new_order->order_id;
+    unsigned int given_id  = new_order->order_id;
+    free(new_order);
+    return given_id;
 }
 
 MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom, const unsigned int orderId,
@@ -427,6 +415,8 @@ static bool checkAmountType (double amount, MatamazomAmountType type){
 }
 static void freeProduct(ASElement product){
     Product prod_to_delete = product;
+    free(prod_to_delete->name);
+    prod_to_delete->freeData(prod_to_delete->customData);
     free(prod_to_delete);
 }
 static int compareProduct(ASElement product1, ASElement product2){
@@ -440,19 +430,18 @@ static ASElement copyProduct(ASElement product) {
     if (copy != NULL) {
         copy->product_id = prod_to_be_copied->product_id;
         int str_len = strlen(prod_to_be_copied->name);
-        char* name = malloc (sizeof(char) * str_len+1);
-        if (name == NULL){
+        char *name = malloc(sizeof(char) * str_len + 1);
+        if (name == NULL) {
             return NULL;
         }
         strcpy(name, prod_to_be_copied->name);
         copy->name = name;
         copy->amountType = prod_to_be_copied->amountType;
-        copy->prodPrice =prod_to_be_copied->prodPrice;
+        copy->prodPrice = prod_to_be_copied->prodPrice;
         copy->sales = prod_to_be_copied->sales;
         copy->copyData = prod_to_be_copied->copyData;
         copy->freeData = prod_to_be_copied->freeData;
         copy->customData = prod_to_be_copied->copyData(prod_to_be_copied->customData);
-
     }
     return copy;
 }
@@ -471,10 +460,15 @@ static ListElement copyOrderProducts(ListElement order){
     copy->products_in_order = asCopy(order_copy->products_in_order);
     return copy;
 }
+
 static void freeOrderProducts (ListElement order){
     Order order_to_delete = order;
-    asDestroy(order_to_delete->products_in_order);
+    if(order_to_delete != NULL){
+        asDestroy(order_to_delete->products_in_order);
+    }
+    free(order_to_delete);
 }
+
 static Order findOrder(List orders, unsigned int orderId) {
     if (orders == NULL) {
         return NULL;
