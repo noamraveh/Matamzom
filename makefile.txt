@@ -2,37 +2,36 @@ CC = gcc
 MA_OBJS = matamazom.o amount_set.o matamazom_print.o tests/matamazom_main.o tests/matamazom_tests.o 
 AS_OBJS = amount_set.o mtm tests/amount_set_main.o tests/amount_set_tests.o
 EXEC1 = matamazom
-EXEC2 = amount_set
-DEBUG_FLAG = –DNDEBUG
-COMP_FLAG =  -std=c99 -Wall -Werror -pedantic-errors 
+EXEC2 = amount_set 
+COMP_FLAG =  -std=c99 -Wall -Werror -pedantic-errors –DNDEBUG
 
 
 $(EXEC1): $(MA_OBJS)
-	$(CC) $(DEBUG_FLAG) $(MA_OBJS) -o -L. -lm -lmtm $@
+	$(CC) $(MA_OBJS) -o -L. -lm -lmtm $@
 
 $(EXEC2): $(AS_OBJS)
-	$(CC) $(DEBUG_FLAG) $(AS_OBJS) -o $@
+	$(CC) $(AS_OBJS) -o $@
 
 matamazom.o: matamazom.c matamazom.h amount_set.h matamazom_print.h list.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+	$(CC) -c $(COMP_FLAG) $*.c
 
 amount_set.o: amount_set.c amount_set.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+	$(CC) -c $(COMP_FLAG) $*.c
 
 matamazom_print.o: matamazom_print.c matamazom_print.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+	$(CC) -c $(COMP_FLAG) $*.c
 
 tests/matamazom_main.o: matamazom_main.c matamazom_tests.h test_utilities.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+	$(CC) -c $(COMP_FLAG) $*.c
 
 tests/matamazom_tests.o: matamazom_tests.c matamazom_tests.h ../matamazom.h test_utilities.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+	$(CC) -c $(COMP_FLAG) $*.c
 
 tests/amount_set_main.o: amount_set_main.c amount_set_tests.h test_utilities.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+	$(CC) -c $(COMP_FLAG) $*.c
 
 tests/amount_set_tests.o: amount_set_tests.c ../amount_set.h amount_set_tests.h test_utilities.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+	$(CC) -c $(COMP_FLAG) $*.c
 
 clean:
 	rm -f $(MA_OBJS) $(AS_OBJS)  $(EXEC1) $(EXEC2)
