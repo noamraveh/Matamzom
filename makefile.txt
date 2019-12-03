@@ -21,16 +21,16 @@ amount_set.o: amount_set.c amount_set.h
 matamazom_print.o: matamazom_print.c matamazom_print.h
 	$(CC) -c $(COMP_FLAG) $*.c
 
-tests/matamazom_main.o: matamazom_main.c matamazom_tests.h test_utilities.h
+tests/matamazom_main.o: tests/matamazom_main.c tests/matamazom.h
 	$(CC) -c $(COMP_FLAG) $*.c
 
-tests/matamazom_tests.o: matamazom_tests.c matamazom_tests.h ../matamazom.h test_utilities.h
+tests/matamazom_tests.o: tests/matamazom_tests.c tests/matamazom_tests.h matamazom.h 
 	$(CC) -c $(COMP_FLAG) $*.c
 
-tests/amount_set_main.o: amount_set_main.c amount_set_tests.h test_utilities.h
+tests/amount_set_main.o: tests/amount_set_main.c tests/amount_set_tests.h tests/test_utilities.h
 	$(CC) -c $(COMP_FLAG) $*.c
 
-tests/amount_set_tests.o: amount_set_tests.c ../amount_set.h amount_set_tests.h test_utilities.h
+tests/amount_set_tests.o: tests/amount_set_tests.c amount_set.h tests/amount_set_tests.h tests/test_utilities.h
 	$(CC) -c $(COMP_FLAG) $*.c
 
 clean:
