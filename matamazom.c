@@ -35,7 +35,6 @@ static bool nameIsValid(const char *name);
 
 static bool checkAmountType(double amount, MatamazomAmountType type);
 
-static double returnAbsDouble(double number);
 
 static ASElement copyProduct(ASElement product);
 
@@ -249,9 +248,11 @@ MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom,
         AS_ITEM_ALREADY_EXISTS) { // the product was already in the order
         AmountSetResult changing_result = asChangeAmount(
                 order_ptr->products_in_order, product_ptr, amount);
+        double updated_amount = 0;
+        asGetAmount(order_ptr->products_in_order, product_ptr,&updated_amount);
         if (changing_result ==
-            AS_INSUFFICIENT_AMOUNT) {
-            // if the amount to decrease was larger than the amount in order
+            AS_INSUFFICIENT_AMOUNT || updated_amount == 0) {
+            // if the amount to decrease was larger/equal than the amount in order
             assert(order_ptr->products_in_order != NULL && product_ptr != NULL);
             asDelete(order_ptr->products_in_order, product_ptr);
         }
@@ -347,8 +348,7 @@ MatamazomResult mtmPrintInventory(Matamazom matamazom, FILE *output) {
         double product_amount;
         asGetAmount(matamazom->storage, product, &product_amount);
         double product_price = product->prodPrice(product->customData,
-                                                  product_amount /
-                                                  product_amount);
+                                                  1);
         mtmPrintProductDetails(product->name, product->product_id,
                                product_amount, product_price, output);
     }
@@ -445,26 +445,33 @@ static bool nameIsValid(const char *name) {
     return false;
 }
 
-static double returnAbsDouble(double number) {
-    if (number < 0) {
-        return -number;
-    }
-    return number;
 
+bool isValidProductAmountType(MatamazomAmountType type, double amount) {
+    double floored_amount = floor(amount);
+    if ((type == MATAMAZOM_INTEGER_AMOUNT && (amount - floored_amount > 0.001) && (amount - floored_amount < 0.999)) ||
+        (type == MATAMAZOM_HALF_INTEGER_AMOUNT &&
+         ((amount - floored_amount > 0.001 && amount - floored_amount < 0.499) ||
+          (amount - floored_amount > 0.501 && amount - floored_amount < 0.999)))) {
+        return false;
+    }
+    return true;
 }
 
 static bool checkAmountType(double amount, MatamazomAmountType type) {
     bool result;
+    double floored = floor(amount);
     switch (type) {
         case MATAMAZOM_INTEGER_AMOUNT:
-            result = returnAbsDouble(round(amount) - amount) <= 0.001 ? true
-                                                                      : false;
-            break;
+            if ((amount - floored > 0.001) && (amount - floored < 0.999)) {
+                result = false;
+                break;
+            }
         case MATAMAZOM_HALF_INTEGER_AMOUNT:
-            result =
-                    returnAbsDouble((round(amount * 2) / 2.0) - amount) <= 0.001
-                    ? true : false;
-            break;
+            if  ((amount - floored > 0.001 && amount - floored < 0.499) ||
+                 (amount - floored > 0.501 && amount - floored < 0.999)) {
+                result = false;
+                break;
+            }
         default:
             result = true;
     }
