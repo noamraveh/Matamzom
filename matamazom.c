@@ -298,8 +298,8 @@ MatamazomResult mtmShipOrder(Matamazom matamazom, const unsigned int orderId) {
                                                  prod_in_order->product_id);
         asGetAmount(current_order->products_in_order, prod_in_order,
                     &amount_in_order);
-        product_in_storage->sales += current_prod_in_order->prodPrice(
-                current_prod_in_order->customData,
+        product_in_storage->sales += prod_in_order->prodPrice(
+                prod_in_order->customData,
                 amount_in_order);
         asChangeAmount(matamazom->storage, product_in_storage,
                        amount_in_order * -1);
