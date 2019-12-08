@@ -249,7 +249,7 @@ MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom,
         AmountSetResult changing_result = asChangeAmount(
                 order_ptr->products_in_order, product_ptr, amount);
         double updated_amount = 0;
-        asGetAmount(order_ptr->products_in_order, product_ptr,&updated_amount);
+        asGetAmount(order_ptr->products_in_order, product_ptr, &updated_amount);
         if (changing_result ==
             AS_INSUFFICIENT_AMOUNT || updated_amount == 0) {
             // if the amount to decrease was larger/equal than the amount in order
@@ -446,16 +446,6 @@ static bool nameIsValid(const char *name) {
 }
 
 
-bool isValidProductAmountType(MatamazomAmountType type, double amount) {
-    double floored_amount = floor(amount);
-    if ((type == MATAMAZOM_INTEGER_AMOUNT && (amount - floored_amount > 0.001) && (amount - floored_amount < 0.999)) ||
-        (type == MATAMAZOM_HALF_INTEGER_AMOUNT &&
-         ((amount - floored_amount > 0.001 && amount - floored_amount < 0.499) ||
-          (amount - floored_amount > 0.501 && amount - floored_amount < 0.999)))) {
-        return false;
-    }
-    return true;
-}
 
 static bool checkAmountType(double amount, MatamazomAmountType type) {
     bool result;
@@ -467,8 +457,8 @@ static bool checkAmountType(double amount, MatamazomAmountType type) {
                 break;
             }
         case MATAMAZOM_HALF_INTEGER_AMOUNT:
-            if  ((amount - floored > 0.001 && amount - floored < 0.499) ||
-                 (amount - floored > 0.501 && amount - floored < 0.999)) {
+            if ((amount - floored > 0.001 && amount - floored < 0.499) ||
+                (amount - floored > 0.501 && amount - floored < 0.999)) {
                 result = false;
                 break;
             }
