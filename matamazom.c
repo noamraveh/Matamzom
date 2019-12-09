@@ -35,7 +35,6 @@ static bool nameIsValid(const char *name);
 
 static bool checkAmountType(double amount, MatamazomAmountType type);
 
-
 static ASElement copyProduct(ASElement product);
 
 static void freeProduct(ASElement product);
@@ -79,8 +78,7 @@ mtmNewProduct(Matamazom matamazom, const unsigned int id, const char *name,
               const MtmProductData customData, MtmCopyData copyData,
               MtmFreeData freeData, MtmGetProductPrice prodPrice) {
     if (matamazom == NULL || name == NULL || customData == NULL ||
-        freeData == NULL ||
-        prodPrice == NULL || copyData == NULL) {
+        freeData == NULL || prodPrice == NULL || copyData == NULL) {
         return MATAMAZOM_NULL_ARGUMENT;
     }
     if (matamazom->storage == NULL) {
@@ -235,7 +233,6 @@ MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom,
         return MATAMAZOM_SUCCESS;
     }
     assert(order_ptr != NULL && product_ptr != NULL);
-
     // registering the product to the order
     if (order_ptr->products_in_order == NULL) {
         order_ptr->products_in_order = asCreate(copyProduct, freeProduct,
@@ -244,26 +241,23 @@ MatamazomResult mtmChangeProductAmountInOrder(Matamazom matamazom,
     AmountSetResult registration_result = asRegister(
             order_ptr->products_in_order, product_ptr);
 
-    if (registration_result ==
-        AS_ITEM_ALREADY_EXISTS) { // the product was already in the order
+    if (registration_result == AS_ITEM_ALREADY_EXISTS) {
+        // the product was already in the order
         AmountSetResult changing_result = asChangeAmount(
                 order_ptr->products_in_order, product_ptr, amount);
         double updated_amount = 0;
         asGetAmount(order_ptr->products_in_order, product_ptr, &updated_amount);
-        if (changing_result ==
-            AS_INSUFFICIENT_AMOUNT || updated_amount == 0) {
+        if (changing_result == AS_INSUFFICIENT_AMOUNT || updated_amount == 0) {
             // if the amount to decrease was larger/equal than the amount in order
             assert(order_ptr->products_in_order != NULL && product_ptr != NULL);
             asDelete(order_ptr->products_in_order, product_ptr);
         }
-        if (changing_result ==
-            AS_SUCCESS) {
+        if (changing_result == AS_SUCCESS) {
             // amount to increase was added the the amount of the product
             return MATAMAZOM_SUCCESS;
         }
     }
-    if (registration_result ==
-        AS_SUCCESS) { // item that was not in the order was added
+    if (registration_result == AS_SUCCESS) { // added item not in the order
         asChangeAmount(order_ptr->products_in_order, product_ptr,
                        amount); // * removed variable name
     }
@@ -444,7 +438,6 @@ static bool nameIsValid(const char *name) {
     }
     return false;
 }
-
 
 
 static bool checkAmountType(double amount, MatamazomAmountType type) {
